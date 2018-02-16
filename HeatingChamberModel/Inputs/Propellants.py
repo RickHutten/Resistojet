@@ -20,7 +20,9 @@ a		Binary phase indicator (0 is liquid, 1 is gas)
 prop 	Propellant under consideration (string)
 """
 
+from annotations import *
 
+@deprecated
 def properties(prop):
     if prop == "N2":
         M=28        #[g/mol] Molar mass
@@ -30,7 +32,7 @@ def properties(prop):
         gamma=1.66  #[-] Specific heat ratio
     elif prop == "H2O":
         M=18        #[g/mol] Molar mass
-        gamma=1.33   #[-] Specific heat ratio
+        gamma=1.33  #[-] Specific heat ratio
     elif prop == "NH3":
         M=17        #[g/mol] Molar mass
         gamma=1.32   #[-] Specific heat ratio

@@ -76,13 +76,13 @@ def HCM_mflow(m_flow,D_char,h_in,p_in,P_in,k_m,k_c,A_ex,e_ex,L_cham,prop,eps,PPI
     #Initial conditions
     eff     =   0.5         #[-] Heating efficiency initial guess
     error   =   1           #[-] Initial error to start loop
-    tol     =   1e-3        #[-] Tolerance for break
+    tol     =   0.1         #[-] Tolerance for break
     P_loss  =   (1-eff)*P_in#[W] Initial guess for power lost
 
     T_struc =   Temp_in(k_m,k_c,A_ex,e_ex,P_loss)
 
     #Counter to correct overflow
-    N_max   = 1e2           #[-] Counter max value
+    N_max   = 50.           #[-] Counter max value
     N       = 0             #[-] Counter initial value
 
     while (error > tol)&(N<N_max):
@@ -96,16 +96,20 @@ def HCM_mflow(m_flow,D_char,h_in,p_in,P_in,k_m,k_c,A_ex,e_ex,L_cham,prop,eps,PPI
 
         #Updating the temperature
         T_old   =   T_struc                 #Saving old value
-        T_struc =   Temp_in(k_m,k_c,A_ex,e_ex,P_loss)   #New structure temperature
-        error   =   np.abs((T_struc-T_old)/T_old)   #Determining error
+
+        if P_loss < 0:  # Not possible to
+            P_loss = 0
+
+        # Calculate new structure temperature with smoothing, needed for low temperatures
+        T_struc =   T_old * (N/N_max) + (1-N/N_max)*Temp_in(k_m,k_c,A_ex,e_ex,P_loss)
+        # T_struc = Temp_in(k_m,k_c,A_ex,e_ex,P_loss)
+        print T_struc
+        error   =   np.abs((T_struc-T_old))   # Determining absolute error
 
         #Updating overflow parameter
         N       =   N+1
 
-        #Providing feedback
-        print 'Finding steady state...'
-
-    return (T_struc,h,T,p,rho,phase,mu)
+    return (eff, P_in, T_struc,h,T,p)
 
 #Function to solve the heating problem at varying structure temperatures and varying mass flow)
 def HCM(C_D,A_t,D_char,h_in,p_in,P_in,k_m,k_c,A_ex,e_ex,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_strut=0):
@@ -188,11 +192,13 @@ def Temp_ext(C1,C2,P_loss):
   #Startpoint of the solver
   T_guess   = 200+273.15
 
-  #Function to solve
-  func  = lambda T : C1*(T-T_inf)+C2*(T**4 - T_inf**4)-P_loss
-
   #Result
-  T_ex  = op.fsolve(func,T_guess)
+  if C1 == 0:
+      T_ex = ((C2*T_inf**4 + P_loss) / C2)**(1/4.)
+  else:
+      # Function to solve
+      func = lambda T: C1 * (T - T_inf) + C2 * (T ** 4 - T_inf ** 4) - P_loss
+      T_ex  = op.fsolve(func,T_guess)
 
   #Returning the required value
   return T_ex

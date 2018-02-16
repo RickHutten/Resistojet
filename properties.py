@@ -11,7 +11,7 @@ H_sto = 83.849  # Enthalpy of stored propellant [kJ/kg]
 
 """ Data limits """
 temperature_min = 375
-temperature_max = 600
+temperature_max = 1000
 temperature_step = 25
 pressure_min = 0.1
 pressure_max = 20

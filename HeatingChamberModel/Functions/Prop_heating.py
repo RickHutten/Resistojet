@@ -1,8 +1,9 @@
-from Inputs import Propellants as gas
 import numpy as np
 from scipy import interpolate as ip
 from scipy import special as sp
 import os.path as pt
+
+import ChemicalProperties.reader as reader
 
 """
 Description:
@@ -46,7 +47,7 @@ def heating(m_flow,D_char,h_in,p_in,T_struc,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_
 
   # Flow area in axisymmetric case
   A_flow=eps*np.pi/4*D_char**2    # [m2] Flow area in the chamber
-  print m_flow/A_flow
+  # print m_flow/A_flow
   # Metal foam properties
   if PPI > 0:
     (perm,A_spec,D_p)=specs(eps,PPI)# [m2] permeability and [m-1]specific area
@@ -66,7 +67,7 @@ def heating(m_flow,D_char,h_in,p_in,T_struc,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_
   # Constants over the iteration
   dx=L_cham/N                     # [m] width of a cell
 
-  print A_spec,perm,D_p
+  # print A_spec,perm,D_p
 
   # Loading the relevant lookup table
   data_name   = '_data_'+prop+'.npy'
@@ -90,19 +91,19 @@ def heating(m_flow,D_char,h_in,p_in,T_struc,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_
   cp_spline     = ip.interp2d(p_lu,h_lu,cp_data.T)
 
   # Reserving space for outer oriented variables
-  T     = np.zeros(N+1)
-  p     = np.zeros(N+1)
-  rho   = np.zeros(N+1)
-  k     = np.zeros(N+1)
-  phase = np.zeros(N+1)
-  h     = np.zeros(N+1)
-  mu    = np.zeros(N+1)
-  cp    = np.zeros(N+1)
-  ReDp  = np.zeros(N+1)
-  Pr    = np.zeros(N+1)
+  T     = np.zeros(int(N+1))
+  p     = np.zeros(int(N+1))
+  rho   = np.zeros(int(N+1))
+  k     = np.zeros(int(N+1))
+  phase = np.zeros(int(N+1))
+  h     = np.zeros(int(N+1))
+  mu    = np.zeros(int(N+1))
+  cp    = np.zeros(int(N+1))
+  ReDp  = np.zeros(int(N+1))
+  Pr    = np.zeros(int(N+1))
 
   # Inner oriented variables
-  h_con = np.zeros(N)
+  h_con = np.zeros(int(N))
 
   # Initial conditions
   h[0]    = h_in                          # [J/kg]
@@ -116,7 +117,6 @@ def heating(m_flow,D_char,h_in,p_in,T_struc,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_
   V       = m_flow/A_flow/rho[0]          # [m/s]
   ReDp[0] = rho[0]*V*D_p/mu[0]            # [-]
   Pr[0]   = cp[0]*mu[0]/k[0]              # [-]
-
 
 
   # Flow-wise solving of the problem
@@ -145,7 +145,7 @@ def heating(m_flow,D_char,h_in,p_in,T_struc,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_
 
     # Calculate pressure drop
     dp        = darcy(V,perm,mu[i],eps,rho[i],D_char,D_p)# [Pa]
-
+    #print "Velocity:", V,  "Rho:", rho[i], T[i], p[i], h[i]
     # Calculating values at the end of cell
     h[i+1]    = h[i]+dh                         # [J/kg]
     p[i+1]    = p[i]+dp*dx                      # [Pa]
@@ -156,6 +156,7 @@ def heating(m_flow,D_char,h_in,p_in,T_struc,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_
     mu[i+1]   = mu_spline(p[i+1],h[i+1])        # [Pa s] Viscosity of mixture
     phase[i+1]= phase_spline(p[i+1],h[i+1])     # [-] mass-fraction: 1 is gas 0 is liquid
     rho[i+1]  = rho_spline(p[i+1],h[i+1])       # [kg/m3] Density of mixture
+    #rho[i+1]  = reader.get_density_pressure_temperature(p[i+1], T[i+1])
     cp[i+1]   = cp_spline(p[i+1],h[i+1])        # [J/kg/K] Specific heat of the mixture
 
     # Determining the speed of the flow
@@ -164,7 +165,7 @@ def heating(m_flow,D_char,h_in,p_in,T_struc,L_cham,prop,eps,PPI=0,A_s=0,A_c=0,D_
     # Determining characteristic numbers
     ReDp[i+1] = m_flow*D_p/mu[i+1]/A_flow       # [-]
     Pr[i+1]   = cp[i+1]*mu[i+1]/k[i+1]          # [-]
-    print rho[i]
+    #print rho[i]
 
   #Returning the output
   return (h,T,p,rho,phase,mu)
@@ -190,7 +191,7 @@ def darcy(V,perm,mu,eps,rho,D,D_p):
     # fp      = sp.jv(0,Da_eps)/(2*Da_eps*sp.jv(1,Da_eps) -sp.jv(0,Da_eps))     # [-]
 
   # Pressure drop
-  dp  =   -mu/perm *V -fp
+  dp  =   -mu/perm *V - fp
 
   return dp
 

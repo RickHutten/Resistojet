@@ -10,16 +10,10 @@ class Files:
     isobaric_ammonia_6_bar = file_dir + 'isobaric_ammonia_6_bar.cgi'
     isobaric_butane_6_bar = file_dir + 'isobaric_butane_6_bar.cgi'
     isobaric_nitrogen_6_bar = file_dir + 'isobaric_nitrogen_6_bar.cgi'
-    isothermal_water_375_K = file_dir + 'isothermal_water_375_K.cgi'
-    isothermal_water_400_K = file_dir + 'isothermal_water_400_K.cgi'
-    isothermal_water_425_K = file_dir + 'isothermal_water_425_K.cgi'
-    isothermal_water_450_K = file_dir + 'isothermal_water_450_K.cgi'
-    isothermal_water_475_K = file_dir + 'isothermal_water_475_K.cgi'
-    isothermal_water_500_K = file_dir + 'isothermal_water_500_K.cgi'
-    isothermal_water_525_K = file_dir + 'isothermal_water_525_K.cgi'
-    isothermal_water_550_K = file_dir + 'isothermal_water_550_K.cgi'
-    isothermal_water_575_K = file_dir + 'isothermal_water_575_K.cgi'
-    isothermal_water_600_K = file_dir + 'isothermal_water_600_K.cgi'
+
+    def getFile(self, temp):
+        temp_rounded = int(temp / properties.temperature_step) * properties.temperature_step
+        return self.file_dir + 'isothermal_water_%i_K.cgi' % temp_rounded
 
 
 class Index:
@@ -49,6 +43,7 @@ class FileReader:
         gamma = ''
 
     def __init__(self, filename):
+        self.filename = filename
         # print "Reading:", filename  # Check to see if the file is being read too much
         with open(filename) as f:
             title_list = f.readline().split('\t')[:-1]
@@ -87,17 +82,9 @@ class DataContainer:
     """
 
     def __init__(self):
-        self.data = {'375': FileReader(Files.isothermal_water_375_K),
-                     '400': FileReader(Files.isothermal_water_400_K),
-                     '425': FileReader(Files.isothermal_water_425_K),
-                     '450': FileReader(Files.isothermal_water_450_K),
-                     '475': FileReader(Files.isothermal_water_475_K),
-                     '500': FileReader(Files.isothermal_water_500_K),
-                     '525': FileReader(Files.isothermal_water_525_K),
-                     '550': FileReader(Files.isothermal_water_550_K),
-                     '575': FileReader(Files.isothermal_water_575_K),
-                     '600': FileReader(Files.isothermal_water_600_K)
-                     }
+        self.data = {str(temp): FileReader(Files().getFile(temp))
+                      for temp in
+                      range(properties.temperature_min, properties.temperature_max + 1, properties.temperature_step)}
 
     def get_data(self, temperature):
         if temperature < properties.temperature_min or temperature >= properties.temperature_max:
@@ -171,3 +158,26 @@ def get_enthalpy_pressure_temperature(pressure, temperature):
             # We're in between two pressures that are listed, i and i-1
             fraction = (pressure - data_low.pressure[i - 1]) / (data_low.pressure[i] - data_low.pressure[i - 1])
             return enthalpy[i - 1] + fraction * (enthalpy[i] - enthalpy[i - 1])
+
+
+def get_density_pressure_temperature(pressure, temperature):
+    pressure = convert.pa_to_bar(pressure)  # Convert to bar
+    if pressure < properties.pressure_min or pressure > properties.pressure_max:
+        raise ValueError('Pressure out of range:' + str(pressure))
+    if temperature < properties.temperature_min: temperature = properties.temperature_min
+    if temperature > properties.temperature_max: temperature = properties.temperature_max - 1
+
+    # Get enthalpy for given temperature (interpolate)
+    data_low, data_high = dataContainer.get_data(temperature)
+    fraction = (temperature % properties.temperature_step) / float(properties.temperature_step)
+    density = [data_low.density[i] + fraction * (data_high.density[i] - data_low.density[i]) for i in
+               range(len(data_low.density))]
+
+    # Enthalpy known for the exact temperature, calculate at exact pressure (interpolate)
+    for i, p in enumerate(data_low.pressure):
+        if p == pressure:
+            return density[i] * 1000  # g/ml to kg/m3
+        if p > pressure:
+            # We're in between two pressures that are listed, i and i-1
+            fraction = (pressure - data_low.pressure[i - 1]) / (data_low.pressure[i] - data_low.pressure[i - 1])
+            return density[i - 1] + fraction * (density[i] - density[i - 1]) * 1000  # g/ml to kg/m3

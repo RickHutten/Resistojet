@@ -14,7 +14,7 @@ T_s     =   210+273.15  #[K] Structure temperature
 L_c     =   0.150       #[m] Length of chamber
 D       =   26e-3       #[m] Diameter of chamber
 C_D     =   0.7         #[-] Discharge coefficient
-A_t     =               #[m2] Throat area
+A_t     =   None        #[m2] Throat area
 prop    =   "N2"        #[-] Propellant
 
 

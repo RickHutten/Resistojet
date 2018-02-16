@@ -38,7 +38,7 @@ k_m     = th.cond_1D(k_PE,A_m,t_m)                      #[W/K] Conductive heat c
 k_c1    = th.cond_shell(k_steel,L_c,r2_steel,r1_steel)  #[W/K] Conductive heat constant of first chamber shell
 k_c2    = th.cond_shell(k_PI,L_c,r1_PI,r1_steel)        #[W/K] Conductive heat constant of second chamber shell
 k_c     = th.cond_comb(k_c1,k_c2)                       #[W/K] Conductive heat constant of the chamber
-
+print "KM", k_m
 print A_t
 print D
 print L_c
@@ -101,7 +101,7 @@ plt.subplot(222)
 plt.plot(x,(p)/p_in,'b')
 plt.grid()
 plt.title('Pressure')
-plt.axis([0,1,0.9,1 ])
+# plt.axis([0,1,0.9,1 ])
 plt.subplot(223)
 plt.plot(x,phase,'c')
 plt.grid()
@@ -111,10 +111,10 @@ plt.plot(x,h/1e3,'k')
 plt.grid()
 plt.title('Enthalpy')
 
-pin=str(int(p_in/1e5))
-#Saving data on HDD
-fname   = '-CICR_study-' + prop + '-' + pin +'bar.npy'
-stamp   =  dt.strftime('%Y%m%d%H%M%S')
-np.save(stamp+fname,DATA)
+# pin=str(int(p_in/1e5))
+# #Saving data on HDD
+# fname   = '-CICR_study-' + prop + '-' + pin +'bar.npy'
+# stamp   =  dt.strftime('%Y%m%d%H%M%S')
+# np.save(stamp+fname,DATA)
 
 plt.show()
